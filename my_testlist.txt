@@ -1,0 +1,14 @@
+##ARCHANNEL bringup test
+axi_ar_txn_test
+
+##ARCHANNEL bringup test with configurable ARLEN
+axi_ar_txn_test +ARLEN=2
+
+##ARCHANNEL bringup test with outstanding transactions
+axi_ar_txn_test +NUM_REQS=3
+
+##ARCHANNEL bring up test with OOO implementation
+axi_ar_txn_test +NUM_REQS=10 +OOO
+
+##ARCHANNEL bring up test with Interleaved implementation
+axi_ar_txn_test +NUM_REQS=10 +INTRLV

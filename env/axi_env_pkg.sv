@@ -1,0 +1,29 @@
+package axi_env_pkg;
+	import uvm_pkg::*;
+
+	 //parameter int ID_WIDTH    = 4;
+     //parameter int ADDR_WIDTH  = 10;
+     parameter int DATA_WIDTH  = 32;
+     parameter int MEM_DEPTH   = 1024;
+
+	
+    `include "axi_seq_item.sv"
+    `include "axi_env_config.sv"
+	`include "axi_id_scheduler.sv"
+    `include "axi_mst_drv.sv"
+	`include "axi_mst_seqr.sv"
+	`include "axi_mst_agent.sv"
+	`include "axi_slv_drv.sv"
+	`include "axi_slv_seqr.sv"
+	`include "axi_slv_mon.sv" 
+	`include "axi_slv_agent.sv"
+	
+	`include "axi_env.sv"
+	
+	`include "axi_reset_seq.sv"
+	`include "axi_base_seq.sv"
+	`include "axi_ar_txn_seq.sv"
+	`include "axi_base_test.sv"
+	`include "axi_ar_txn_test.sv"
+
+endpackage
