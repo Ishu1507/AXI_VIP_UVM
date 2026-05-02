@@ -22,6 +22,8 @@ class axi_id_scheduler extends uvm_component;
   bit initialized, initial_id_rdy_to_srv;
   
   axi_env_config axi_env_config_h;
+  
+  uvm_event id_available_event;
  
   uvm_analysis_imp_arch_mon_imp #(axi_seq_item, axi_id_scheduler) arch_mon_imp;
   uvm_analysis_imp_rch_mon_imp #(axi_seq_item, axi_id_scheduler) rch_mon_imp;
@@ -42,6 +44,8 @@ class axi_id_scheduler extends uvm_component;
     
     if (!uvm_config_db #(virtual axi_interface):: get (this, "", "axi_interface", axi_if))
       `uvm_info (get_type_name(), $psprintf("Could not get AXI master interface instance"), UVM_NONE);
+    
+    id_available_event = uvm_event_pool::get_global("id_available_event");
     
   endfunction
   
@@ -65,12 +69,12 @@ class axi_id_scheduler extends uvm_component;
     
     if (!initialized)
     begin
-  	  id_database.first(my_id);
+  	  id_database.first(selected_id);
          
-      while (id_database[my_id][0].rdy_to_srv == 0)
+      while (id_database[selected_id][0].rdy_to_srv == 0)
       begin
-        if (!id_database.next(my_id))
-        	id_database.first(my_id);	
+        if (!id_database.next(selected_id))
+        	id_database.first(selected_id);	
         
       	@(posedge axi_if.axi_clk);
       end
@@ -81,14 +85,14 @@ class axi_id_scheduler extends uvm_component;
      
     if (axi_env_config_h.ooo_en_val_m && initialized)
     begin
-        if (id_database[my_id][0].count == id_database[my_id][0].arlen + 1)
+        if (id_database[selected_id][0].count == id_database[selected_id][0].arlen + 1)
         begin
           	do
             begin
-              if (id_database.next(my_id))
-                id_database.first(my_id);	              	
+              if (id_database.next(selected_id))
+                id_database.first(selected_id);	              	
             end
-            while (id_database[my_id][0].rdy_to_srv == 0);
+            while (id_database[selected_id][0].rdy_to_srv == 0);
          
         end
     end
@@ -97,10 +101,12 @@ class axi_id_scheduler extends uvm_component;
       `uvm_info (get_type_name(), $psprintf ("Inside interleaving logic"), UVM_HIGH)
       do
       begin
-        if (!id_database.next(my_id))
-          id_database.first(my_id);
+        if (!id_database.next(selected_id))
+          id_database.first(selected_id);
+        
+        //$display ("selected_id = %0h", selected_id);
       end
-          while (id_database[my_id][0].rdy_to_srv == 0);
+      while (id_database[selected_id][0].rdy_to_srv == 0);
     end
      
     initialized = 1;
@@ -146,7 +152,8 @@ class axi_id_scheduler extends uvm_component;
     
     if (axi_env_config_h.ooo_en_val_m || axi_env_config_h.intrlv_en_val_m) //OOO logic
     begin
-  			
+      
+      //while (id_database.num())	
       	call_scheduler (ar_ch_tr_h);
       	 
      end
@@ -178,6 +185,8 @@ class axi_id_scheduler extends uvm_component;
     ar_ch_tr_queue.push_back(ar_ch_tr_h);
  
     id_database[ar_ch_tr_h.arid].push_back (ar_ch_tr_h);
+    
+    id_available_event.trigger();
     
     latency_model_queue.push_back(ar_ch_tr_h);
         

@@ -1,4 +1,3 @@
-import axi_env_pkg::*;
 class axi_slv_drv extends uvm_driver #(axi_seq_item);
   `uvm_component_utils (axi_slv_drv)
   
@@ -11,6 +10,8 @@ class axi_slv_drv extends uvm_driver #(axi_seq_item);
   axi_id_scheduler axi_id_scheduler_h;
   
   bit [DATA_WIDTH-1:0] slave_mem [0:MEM_DEPTH-1];
+  
+  uvm_event id_available_event;
   
 
   
@@ -26,6 +27,8 @@ class axi_slv_drv extends uvm_driver #(axi_seq_item);
     
       //req_item = axi_seq_item::type_id::create ("req_item");
     
+    id_available_event = uvm_event_pool::get_global("id_available_event");
+    
     foreach (slave_mem[i])
     begin
       slave_mem[i] = i;
@@ -36,6 +39,7 @@ class axi_slv_drv extends uvm_driver #(axi_seq_item);
   endfunction
     
 
+  
   task drv_rst(); 
   	axi_if.RDATA		<= 256'b0;
    	axi_if.RVALID		<= 1'b0;
@@ -90,9 +94,13 @@ class axi_slv_drv extends uvm_driver #(axi_seq_item);
     int len_of_burst;
     bit [5:0] serve_id;
     
-    forever
+    
+    id_available_event.wait_trigger();
+
+    
+    while (axi_id_scheduler_h.id_database.num() > 0)
     begin
-      
+      $display ("id_database.num() = %d", axi_id_scheduler_h.id_database.num());
       axi_id_scheduler_h.get_next_txn (ar_ch_tr_rd_h); //Scheduler providing next ID to be served.
       
       //len_of_burst = ar_ch_tr_rd_h.arlen + 1;
@@ -132,7 +140,7 @@ class axi_slv_drv extends uvm_driver #(axi_seq_item);
   endtask
   
   task run_phase (uvm_phase phase);
-    
+    super.run_phase (phase);
    fork
    begin 
      forever
@@ -146,6 +154,7 @@ class axi_slv_drv extends uvm_driver #(axi_seq_item);
    begin
     forever
    	begin
+        
     	seq_item_port.get_next_item (req_item);
       
     	if (req_item.rst)

@@ -3,6 +3,7 @@ class axi_mst_agent extends uvm_agent;
   
   axi_mst_drv axi_mst_drv_h;
   axi_mst_seqr axi_mst_seqr_h;
+  axi_mst_mon axi_mst_mon_h;
   
   
   function new (string name = "axi_mst_agent", uvm_component parent = null);
@@ -14,6 +15,7 @@ class axi_mst_agent extends uvm_agent;
     
     axi_mst_drv_h  = axi_mst_drv::type_id::create ("axi_mst_drv_h", this);
     axi_mst_seqr_h = axi_mst_seqr::type_id::create ("axi_mst_seqr_h", this);
+    axi_mst_mon_h = axi_mst_mon::type_id::create ("axi_mst_mon_h", this);
     
   endfunction
   
