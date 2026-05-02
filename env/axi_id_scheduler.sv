@@ -40,7 +40,7 @@ class axi_id_scheduler extends uvm_component;
     rch_mon_imp = new ("rch_mon_imp", this);
     
     if (!uvm_config_db #(axi_env_config):: get (this, "", "axi_cfg", axi_env_config_h))
-      `uvm_info (get_type_name(), $psprintf("Could not get AXI cionfig object"), UVM_NONE);
+      `uvm_info (get_type_name(), $psprintf("Could not get AXI config object"), UVM_NONE);
     
     if (!uvm_config_db #(virtual axi_interface):: get (this, "", "axi_interface", axi_if))
       `uvm_info (get_type_name(), $psprintf("Could not get AXI master interface instance"), UVM_NONE);
@@ -102,10 +102,12 @@ class axi_id_scheduler extends uvm_component;
       do
       begin
         if (!id_database.next(selected_id))
+	begin
           id_database.first(selected_id);
-        
-        //$display ("selected_id = %0h", selected_id);
-      end
+          wait (id_database[selected_id][0].rdy_to_srv == 1); // Wait for last transaction to complete latency. Do not subject it to continous looping
+          break;
+        end
+      end  
       while (id_database[selected_id][0].rdy_to_srv == 0);
     end
      

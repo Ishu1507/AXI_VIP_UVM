@@ -12,6 +12,8 @@ class axi_slv_drv extends uvm_driver #(axi_seq_item);
   bit [DATA_WIDTH-1:0] slave_mem [0:MEM_DEPTH-1];
   
   uvm_event id_available_event;
+
+  int outstanding_read;
   
 
   
@@ -24,9 +26,10 @@ class axi_slv_drv extends uvm_driver #(axi_seq_item);
     
     if (!uvm_config_db #(virtual axi_interface):: get (this, "", "axi_interface", axi_if))
       `uvm_info (get_type_name(), $psprintf("Could not get AXI master interface instance"), UVM_NONE);
-    
-      //req_item = axi_seq_item::type_id::create ("req_item");
-    
+
+    if (!uvm_config_db #(axi_env_config):: get (this, "", "axi_cfg", axi_env_config_h))
+        `uvm_info (get_type_name(), $psprintf("Could not get AXI config object"), UVM_NONE);
+
     id_available_event = uvm_event_pool::get_global("id_available_event");
     
     foreach (slave_mem[i])
@@ -51,17 +54,35 @@ class axi_slv_drv extends uvm_driver #(axi_seq_item);
   endtask
   
   task drv_rdy();
-    
-    do
+    fork
+    begin //{
+	if (axi_if.ARVALID && axi_if.ARREADY)
+	begin//{
+		outstanding_read++;
+	end//}
+	else if (axi_if.RVALID && axi_if.RREADY && axi_if.RLAST)
+	begin //{
+		outstanding_read--;
+	end //}
+    end 
     begin
-    	@(posedge axi_if.axi_clk);
-		axi_if.ARREADY <= 1'b1;
+	if (axi_env_config_h.arrdy_rnd_en_val_m) //ARREADY randomization enabled
+	begin //{
+		if (outstanding_read <= MAX_OUTSTANDING_READ)
+		begin //{
+		          axi_if.ARREADY <= 1;
+		end //}
+		else if (outstanding_read > MAX_OUTSTANDING_READ)
+		begin //{
+			axi_if.ARREADY <= 0;
+		end //}
+	end //}
+	else
+		axi_if.ARREADY <= 1; //ARREADY fixed to high
     end
-    while (!axi_if.ARVALID);
-    
-    //axi_if.ARREADY <= 1'b0;
- 	
-    
+    join
+    `uvm_info (get_type_name(), $psprintf ("Current outstanding read count = %d, Max outstanding limit = %d", outstanding_read, MAX_OUTSTANDING_READ), UVM_HIGH) 
+    @(posedge axi_if.axi_clk);
   endtask
   
   task drv_txn ();

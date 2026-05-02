@@ -1,10 +1,12 @@
 package axi_env_pkg;
 	import uvm_pkg::*;
 
-	 parameter int ID_WIDTH    = 6;
+     parameter int ID_WIDTH    = 6;
      parameter int ADDR_WIDTH  = 10;
      parameter int DATA_WIDTH  = 32;
      parameter int MEM_DEPTH   = 1024;
+
+     parameter MAX_OUTSTANDING_READ = 5;
 
 	
     `include "axi_seq_item.sv"
