@@ -15,3 +15,9 @@ axi_ar_txn_test +NUM_REQS=10 +INTRLV
 
 ##ARREADY randomization with interleaving
 axi_ar_txn_test +NUM_REQS=10 +INTRLV +ARRDY_RND_EN
+
+##RVALID randomization with interleaving
+axi_ar_txn_test +NUM_REQS=10 +INTRLV +RVLD_RND_EN
+
+##RVALID and ARREADY randomization with interleaving
+axi_ar_txn_test +NUM_REQS=10 +INTRLV +RVLD_RND_EN +ARRDY_RND_EN

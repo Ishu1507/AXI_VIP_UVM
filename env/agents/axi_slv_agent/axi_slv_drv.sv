@@ -41,7 +41,15 @@ class axi_slv_drv extends uvm_driver #(axi_seq_item);
     
   endfunction
     
+  task check_beat_readiness ();
+  
+  	bit [1:0] induce_stall;
 
+	induce_stall = $urandom_range (0,3);
+
+	repeat (induce_stall)
+		@(posedge axi_if.axi_clk);
+  endtask
   
   task drv_rst(); 
   	axi_if.RDATA		<= 256'b0;
@@ -110,7 +118,8 @@ class axi_slv_drv extends uvm_driver #(axi_seq_item);
   
   task initiate_drive_r_ch ();
     ar_ch_tr ar_ch_tr_rd_h;
-    
+    bit next_rdy;
+ 
     logic [5:0]  rd_addr;
     int len_of_burst;
     bit [5:0] serve_id;
@@ -154,7 +163,11 @@ class axi_slv_drv extends uvm_driver #(axi_seq_item);
       axi_if.RVALID <= 1'b0;
       axi_if.RLAST  <= 1'b0;
         
-       
+      if(axi_env_config_h.rvld_rnd_en_val_m)
+
+	next_rdy = ($urandom_range (0,3) == 0) ? 0:1;
+	if (!next_rdy)
+      		check_beat_readiness();       
       
     end
            
