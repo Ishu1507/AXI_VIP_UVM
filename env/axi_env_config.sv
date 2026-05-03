@@ -8,6 +8,7 @@ class axi_env_config extends uvm_object;
   bit arrand_en_m, arrdy_rnd_en_val_m; 
   
   bit rvld_rnd_en_val_m; 
+  bit arvld_rnd_en_val_m; 
   
   function new (string name = "axi_env_config");
     super.new (name);
@@ -62,6 +63,15 @@ class axi_env_config extends uvm_object;
   end
   else
 	rvld_rnd_en_val_m = 0;
+
+  if ($test$plusargs("ARVLD_RND_EN"))
+  begin
+  	arvld_rnd_en_val_m = 1;
+  	`uvm_info(get_type_name(), $psprintf("ARVALID randomization enabled"), UVM_NONE)
+  end
+  else
+	arvld_rnd_en_val_m = 0;
+
 
 endfunction
   

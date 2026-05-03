@@ -25,10 +25,10 @@ class axi_slv_drv extends uvm_driver #(axi_seq_item);
     super.build_phase (phase);
     
     if (!uvm_config_db #(virtual axi_interface):: get (this, "", "axi_interface", axi_if))
-      `uvm_info (get_type_name(), $psprintf("Could not get AXI master interface instance"), UVM_NONE);
+      `uvm_fatal (get_type_name(), $psprintf("Could not get AXI master interface instance"));
 
     if (!uvm_config_db #(axi_env_config):: get (this, "", "axi_cfg", axi_env_config_h))
-        `uvm_info (get_type_name(), $psprintf("Could not get AXI config object"), UVM_NONE);
+        `uvm_fatal (get_type_name(), $psprintf("Could not get AXI config object"));
 
     id_available_event = uvm_event_pool::get_global("id_available_event");
     

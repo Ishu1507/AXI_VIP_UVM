@@ -6,7 +6,9 @@ class axi_mst_drv extends uvm_driver #(axi_seq_item);
   
   uvm_analysis_port #(axi_seq_item) arch_mon_port;
   
+  bit next_rdy; 
   axi_seq_item req_item;
+  axi_env_config axi_env_config_h;
   
   function new (string name = "axi_mst_drv", uvm_component parent = null);
     	super.new (name, parent);
@@ -16,13 +18,23 @@ class axi_mst_drv extends uvm_driver #(axi_seq_item);
     super.build_phase (phase);
     
     if (!uvm_config_db #(virtual axi_interface):: get (this, "", "axi_interface", axi_if))
-      `uvm_info (get_type_name(), $psprintf("Could not get AXI master interface instance"), UVM_NONE);
+      `uvm_fatal (get_type_name(), $psprintf("Could not get AXI master interface instance"));
+
+    if (!uvm_config_db #(axi_env_config):: get (this, "", "axi_cfg", axi_env_config_h))
+        `uvm_fatal (get_type_name(), $psprintf("Could not get AXI config object"));
+
    
     arch_mon_port = new ("arch_mon_port", this);
     
   endfunction
     
+  task check_req_readiness ();
+	bit induce_stall;
 
+	induce_stall = $urandom_range (0,3);
+	repeat (induce_stall)
+		@(posedge axi_if.axi_clk);	
+  endtask
   task drv_rst();
     
 	axi_if.ARADDR	<= 32'b0;
@@ -35,11 +47,9 @@ class axi_mst_drv extends uvm_driver #(axi_seq_item);
   
   task drv_txn ();
     `uvm_info(get_type_name(), "Entered drv_txn task in mst drv", UVM_NONE)
-    
+     
     if (req_item.ARVALID)
     begin
-
-      
       	axi_if.ARVALID 	<= req_item.ARVALID;
         axi_if.ARADDR  	<= req_item.ARADDR;
         axi_if.ARLEN  	<= req_item.ARLEN;
@@ -52,14 +62,19 @@ class axi_mst_drv extends uvm_driver #(axi_seq_item);
         while (!axi_if.ARREADY);
         
         axi_if.ARVALID 	<= 1'b0;
-      
-        arch_mon_port.write (req_item);
         
+	arch_mon_port.write (req_item);
       
+	if(axi_env_config_h.arvld_rnd_en_val_m)
+	begin //{
+		next_rdy = ($urandom_range (0,3) == 0) ? 0:1;
+
+		if (!next_rdy)
+			check_req_readiness ();
+	end //} 
     end
     else 
       axi_if.ARVALID <= req_item.ARVALID;
-  
   endtask
   
   task drv_rdy();
