@@ -5,6 +5,8 @@ package axi_env_pkg;
      parameter int ADDR_WIDTH  = 10;
      parameter int DATA_WIDTH  = 32;
      parameter int MEM_DEPTH   = 1024;
+     parameter int BURST_LEN_WIDTH = 8;
+     parameter int STRB_WIDTH = DATA_WIDTH/8;
 
      parameter MAX_OUTSTANDING_READ = 5;
 
