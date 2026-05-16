@@ -78,18 +78,31 @@ class axi_mst_drv extends uvm_driver #(axi_seq_item);
   endtask
   
   task drv_rdy();
-    
-    do
-    begin
-    	@(posedge axi_if.axi_clk);
-		axi_if.RREADY <= 1'b1;
-    end
-    while (!axi_if.RVALID);
+  	int rnd_val; 
+  	if (axi_env_config_h.rrdy_rnd_en_val_m)
+  	begin //{
+  	      `uvm_info (get_type_name(), $psprintf ("RRDY randomization enableled"), UVM_HIGH)	
+  	      do
+  	      begin //{
+  	      	rnd_val = $urandom_range(0,100);
+  	      	`uvm_info (get_type_name (), $psprintf ("rnd_val = %d", rnd_val), UVM_HIGH)	
+  	      	if (rnd_val < 30)
+  	      	begin
+  	      		axi_if.RREADY <= 1'b1;
+  	      	end
+  	      	else
+  	      		axi_if.RREADY <= 1'b0;
+		
+		@(posedge axi_if.axi_clk);
+  	      end //}			
+  	      while (1);		 
+  	end //}
+  	else
+  	begin //{
+  	      axi_if.RREADY <= 1'b1;
+  	end //}
+			 
   endtask
-  
-  
-  
-  
   
   task run_phase (uvm_phase phase);
     //super.new (phase);
@@ -99,7 +112,6 @@ class axi_mst_drv extends uvm_driver #(axi_seq_item);
    begin
      drv_rdy();
    end
-   
    begin   
    	forever
    	begin

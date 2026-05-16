@@ -6,9 +6,10 @@ class axi_env_config extends uvm_object;
   bit arlen_switch_cfg;
   bit ooo_en_val_m, intrlv_en_val_m;
   bit arrand_en_m, arrdy_rnd_en_val_m; 
-  
   bit rvld_rnd_en_val_m; 
-  bit arvld_rnd_en_val_m; 
+  bit arvld_rnd_en_val_m;
+  bit rrdy_rnd_en_val_m;
+ 
   
   function new (string name = "axi_env_config");
     super.new (name);
@@ -43,7 +44,7 @@ class axi_env_config extends uvm_object;
   if ($test$plusargs("INTRLV"))
   begin
   	intrlv_en_val_m = 1;
-  	`uvm_info(get_type_name(), $psprintf("OOO enabled"), UVM_NONE)
+  	`uvm_info(get_type_name(), $psprintf("INTRLV enabled"), UVM_NONE)
   end
   else
   	intrlv_en_val_m = 0;
@@ -54,7 +55,24 @@ class axi_env_config extends uvm_object;
   	`uvm_info(get_type_name(), $psprintf("ARREADY randomization enabled"), UVM_NONE)
   end
   else
-	arrdy_rnd_en_val_m = 0;  
+	arrdy_rnd_en_val_m = 0;
+
+  if ($test$plusargs("ARVLD_RND_EN"))
+  begin
+  	arvld_rnd_en_val_m = 1;
+  	`uvm_info(get_type_name(), $psprintf("ARVALID randomization enabled"), UVM_NONE)
+  end
+  else
+	arvld_rnd_en_val_m = 0;
+ 
+  if ($test$plusargs("RRDY_RND_EN"))
+  begin
+  	rrdy_rnd_en_val_m = 1;
+  	`uvm_info(get_type_name(), $psprintf("RREADY randomization enabled"), UVM_NONE)
+  end
+  else
+	rrdy_rnd_en_val_m = 0;
+ 
 
   if ($test$plusargs("RVLD_RND_EN"))
   begin
@@ -64,13 +82,6 @@ class axi_env_config extends uvm_object;
   else
 	rvld_rnd_en_val_m = 0;
 
-  if ($test$plusargs("ARVLD_RND_EN"))
-  begin
-  	arvld_rnd_en_val_m = 1;
-  	`uvm_info(get_type_name(), $psprintf("ARVALID randomization enabled"), UVM_NONE)
-  end
-  else
-	arvld_rnd_en_val_m = 0;
 
 
 endfunction

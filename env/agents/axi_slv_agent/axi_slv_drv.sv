@@ -163,11 +163,11 @@ class axi_slv_drv extends uvm_driver #(axi_seq_item);
       axi_if.RVALID <= 1'b0;
       axi_if.RLAST  <= 1'b0;
         
-      if(axi_env_config_h.rvld_rnd_en_val_m)
-
+      if(axi_env_config_h.rvld_rnd_en_val_m) begin //{
 	next_rdy = ($urandom_range (0,3) == 0) ? 0:1;
 	if (!next_rdy)
       		check_beat_readiness();       
+      end //}
       
     end
            
