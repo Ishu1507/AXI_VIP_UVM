@@ -9,7 +9,11 @@ class axi_mst_drv extends uvm_driver #(axi_seq_item);
   bit next_rdy; 
   axi_seq_item req_item;
   axi_env_config axi_env_config_h;
-  
+ 
+  axi_memory axi_memory_h;
+
+  axi_seq_item wdata_q [$];
+ 
   function new (string name = "axi_mst_drv", uvm_component parent = null);
     	super.new (name, parent);
   endfunction
@@ -42,10 +46,27 @@ class axi_mst_drv extends uvm_driver #(axi_seq_item);
    	axi_if.ARLEN 	<= 1'b0;
 	axi_if.ARID 	<= 6'b0; 
     
-    axi_if.RREADY 	<= 1'b0;
+    	axi_if.RREADY 	<= 1'b0;
+
+	axi_if.AWADDR	<= {ADDR_WIDTH{1'b0}};
+	axi_if.AWVALID  <= 1'b0;
+   	axi_if.AWLEN 	<= 1'b0;
+	axi_if.AWID 	<= 6'b0;
+
+	axi_if.WDATA	<= {DATA_WIDTH{1'b0}};
+	axi_if.WVALID  	<= 1'b0;
+	axi_if.WLAST  	<= 1'b0;
+	axi_if.WSTRB  	<= {STRB_WIDTH{1'b0}};
+   	 
+    	axi_if.BREADY 	<= 1'b0;
+ 
+    
+    	axi_if.BREADY 	<= 1'b0;
+	
+	@(posedge axi_if.axi_clk);
   endtask
   
-  task drv_txn ();
+  task drv_txn (); //Task to drive AR channel transactions
     `uvm_info(get_type_name(), "Entered drv_txn task in mst drv", UVM_NONE)
      
     if (req_item.ARVALID)
@@ -76,7 +97,73 @@ class axi_mst_drv extends uvm_driver #(axi_seq_item);
     else 
       axi_if.ARVALID <= req_item.ARVALID;
   endtask
-  
+ 
+  task drv_wch_awtxn (); //Task to drive AW channel transactions
+    if (req_item.AWVALID)
+    begin //{
+      	axi_if.AWVALID 	<= req_item.AWVALID;
+        axi_if.AWADDR  	<= req_item.AWADDR;
+        axi_if.AWLEN  	<= req_item.AWLEN;
+        axi_if.AWID	<= req_item.AWID;
+      
+        do
+    	begin
+          @(posedge axi_if.axi_clk);
+    	end
+        while (!axi_if.AWREADY);
+        
+        axi_if.AWVALID 	<= 1'b0;
+	
+    end //}
+  endtask
+
+  task drv_wch_data (); //Task to drive WDATA beats
+	axi_seq_item axi_seq_item_h;
+	
+	bit [ADDR_WIDTH-1:0] curr_addr;
+	bit [BURST_LEN_WIDTH-1:0] awlen;
+	bit [STRB_WIDTH-1:0] strb;
+
+	int i;
+	
+
+	`uvm_info (get_type_name(), $psprintf ("Inside drive WDATA task"), UVM_HIGH)
+	
+	forever
+	begin //{
+
+		wait (wdata_q.size() != 0);
+		axi_seq_item_h = wdata_q.pop_front ();
+		
+		awlen = axi_seq_item_h.AWLEN; 
+		curr_addr = axi_seq_item_h.AWADDR;
+		strb = axi_seq_item_h.WSTRB;
+		i = 0;
+		`uvm_info (get_type_name (), $psprintf ("AW txn to serve: AWADDR = %0h, AWLEN = %0h, STTB = %0h", curr_addr, awlen, strb), UVM_HIGH)
+		 
+		while (i < awlen + 1)
+		begin //{
+			axi_if.WDATA	<= {axi_memory_h.mem[curr_addr + 3], axi_memory_h.mem[curr_addr + 2], axi_memory_h.mem[curr_addr + 1], axi_memory_h.mem[curr_addr]};
+			axi_if.WSTRB	<= strb;
+			axi_if.WVALID 	<= 1'b1;
+			
+			if (i == awlen)
+				axi_if.WLAST 	<= 1'b1;			 
+
+			do
+    			begin //{
+          			@(posedge axi_if.axi_clk);
+    			end //}
+        		while (!axi_if.WREADY);
+
+			axi_if.WVALID 	<= 1'b0;
+			axi_if.WLAST 	<= 1'b0;
+			curr_addr = curr_addr + 4;
+			i++;
+		end //}
+	end //}	 	
+  endtask
+ 
   task drv_rdy();
   	int rnd_val; 
   	if (axi_env_config_h.rrdy_rnd_en_val_m)
@@ -112,20 +199,32 @@ class axi_mst_drv extends uvm_driver #(axi_seq_item);
    begin
      drv_rdy();
    end
-   begin   
+   begin
+	do
+		drv_wch_data();
+        while (!wdata_q.size());
+   end 
+   begin //{  
    	forever
-   	begin
-    
-    	seq_item_port.get_next_item (req_item);
+   	begin //{
+    		seq_item_port.get_next_item (req_item);
       
-    	if (req_item.rst)
-      		drv_rst();
-    	else if (req_item.drv_txn)
-      		drv_txn();
+    		if (req_item.rst)
+      			drv_rst();
+    		else if (req_item.drv_txn)
+		begin //{
+			if (req_item.tr_type == WRITE)
+			begin //{
+					wdata_q.push_back(req_item);
+					drv_wch_awtxn ();
+			end //}
+			else
+      				drv_txn();
+		end //}
       
-     	seq_item_port.item_done();
-    end      
-   end
+     		seq_item_port.item_done();
+    	end //}     
+   end //}
    join
   endtask		
       

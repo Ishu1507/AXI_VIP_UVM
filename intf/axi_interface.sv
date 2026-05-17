@@ -30,7 +30,7 @@
 
 ///////////////////Write data channel signals////////////////////
    
-   logic [ID_WIDTH-1:0] WID;
+   //logic [ID_WIDTH-1:0] WID;
    logic [DATA_WIDTH-1:0] WDATA;
    logic [STRB_WIDTH-1:0] WSTRB; 
    logic WREADY;

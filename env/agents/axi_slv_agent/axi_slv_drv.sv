@@ -58,10 +58,14 @@ class axi_slv_drv extends uvm_driver #(axi_seq_item);
    	axi_if.RRESP		<= 1'b0;
    	axi_if.RID			<= 6'b0; 
     
-    axi_if.ARREADY 		<= 1'b0;
+    	axi_if.ARREADY 		<= 1'b0;
+
+	axi_if.BVALID		<= 1'b0;
+	axi_if.BID		<= {ID_WIDTH{1'b0}};
+	axi_if.BRESP		<= 2'b0;	
   endtask
   
-  task drv_rdy();
+  task drv_arrdy();
     fork
     begin //{
 	if (axi_if.ARVALID && axi_if.ARREADY)
@@ -92,6 +96,14 @@ class axi_slv_drv extends uvm_driver #(axi_seq_item);
     `uvm_info (get_type_name(), $psprintf ("Current outstanding read count = %d, Max outstanding limit = %d", outstanding_read, MAX_OUTSTANDING_READ), UVM_HIGH) 
     @(posedge axi_if.axi_clk);
   endtask
+ 
+  task drv_awrdy();
+	axi_if.AWREADY <= 1'b1;
+  endtask
+
+  task drv_wrdy();
+	axi_if.WREADY <= 1'b1;
+  endtask 
   
   task drv_txn ();
     
@@ -178,9 +190,18 @@ class axi_slv_drv extends uvm_driver #(axi_seq_item);
    fork
    begin 
      forever
-       drv_rdy(); //Driving ARREADY
+       drv_arrdy(); //Driving ARREADY
    end
-     
+   begin
+     //forever
+	drv_awrdy(); //Driving AWREADY
+   end
+   
+   begin
+     //forever
+	drv_wrdy(); //Driving WREADY
+   end
+   
    begin
      initiate_drive_r_ch ();
    end

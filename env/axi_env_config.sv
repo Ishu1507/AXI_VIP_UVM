@@ -4,12 +4,14 @@ class axi_env_config extends uvm_object;
   bit [5:0] arlen_val, arlen_val_m;
   bit [5:0] num_of_requests_val, num_of_requests_val_m;
   bit arlen_switch_cfg;
+  bit awlen_switch_cfg;
   bit ooo_en_val_m, intrlv_en_val_m;
   bit arrand_en_m, arrdy_rnd_en_val_m; 
   bit rvld_rnd_en_val_m; 
   bit arvld_rnd_en_val_m;
   bit rrdy_rnd_en_val_m;
- 
+
+  bit [5:0] awlen_val, awlen_val_m; 
   
   function new (string name = "axi_env_config");
     super.new (name);
@@ -82,6 +84,12 @@ class axi_env_config extends uvm_object;
   else
 	rvld_rnd_en_val_m = 0;
 
+  if ($value$plusargs("AWLEN=%d", awlen_val))
+  begin
+  	awlen_val_m = awlen_val;
+    	awlen_switch_cfg = 1;
+    	`uvm_info(get_type_name(), $psprintf("Value of awlen_val_m= %d", awlen_val_m), UVM_NONE)
+  end
 
 
 endfunction

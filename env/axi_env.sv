@@ -6,6 +6,8 @@ class axi_env extends uvm_env;
   
   axi_id_scheduler axi_id_scheduler_h;
   axi_scoreboard axi_scoreboard_h;
+
+  axi_memory axi_memory_h;
   
   function new (string name = "axi_env", uvm_component parent = null);
     super.new (name, parent);
@@ -18,6 +20,9 @@ class axi_env extends uvm_env;
     
     	axi_id_scheduler_h = axi_id_scheduler::type_id::create ("axi_id_scheduler_h", this);
     	axi_scoreboard_h = axi_scoreboard::type_id::create ("axi_scoreboard_h", this);
+
+	axi_memory_h = axi_memory::type_id::create("axi_memory_h", this);
+
   endfunction
   
   function void connect_phase (uvm_phase phase);
@@ -33,7 +38,8 @@ class axi_env extends uvm_env;
     
     axi_slv_agent_h.axi_slv_drv_h.axi_id_scheduler_h = axi_id_scheduler_h;
     axi_scoreboard_h.axi_slv_drv_h = axi_slv_agent_h.axi_slv_drv_h;
-    
+   
+    axi_mst_agent_h.axi_mst_drv_h.axi_memory_h = axi_memory_h;
   endfunction  
   
 endclass
