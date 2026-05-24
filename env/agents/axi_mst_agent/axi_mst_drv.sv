@@ -6,6 +6,9 @@ class axi_mst_drv extends uvm_driver #(axi_seq_item);
   
   uvm_analysis_port #(axi_seq_item) arch_mon_port;
   
+  uvm_analysis_port #(axi_seq_item) awch_mon_port;
+  uvm_analysis_port #(axi_seq_item) wch_mon_port;
+  
   bit next_rdy; 
   axi_seq_item req_item;
   axi_env_config axi_env_config_h;
@@ -29,6 +32,9 @@ class axi_mst_drv extends uvm_driver #(axi_seq_item);
 
    
     arch_mon_port = new ("arch_mon_port", this);
+    
+    awch_mon_port = new ("awch_mon_port", this);
+    wch_mon_port = new ("wch_mon_port", this);
     
   endfunction
     
@@ -59,10 +65,6 @@ class axi_mst_drv extends uvm_driver #(axi_seq_item);
 	axi_if.WSTRB  	<= {STRB_WIDTH{1'b0}};
    	 
     	axi_if.BREADY 	<= 1'b0;
- 
-    
-    	axi_if.BREADY 	<= 1'b0;
-	
 	@(posedge axi_if.axi_clk);
   endtask
   
@@ -113,6 +115,8 @@ class axi_mst_drv extends uvm_driver #(axi_seq_item);
         while (!axi_if.AWREADY);
         
         axi_if.AWVALID 	<= 1'b0;
+
+	awch_mon_port.write (req_item); //Sending raised AW request to Scheduler
 	
     end //}
   endtask
@@ -155,10 +159,17 @@ class axi_mst_drv extends uvm_driver #(axi_seq_item);
           			@(posedge axi_if.axi_clk);
     			end //}
         		while (!axi_if.WREADY);
-
+			
 			axi_if.WVALID 	<= 1'b0;
 			axi_if.WLAST 	<= 1'b0;
 			curr_addr = curr_addr + 4;
+
+			axi_seq_item_h.WDATA = axi_if.WDATA;
+			axi_seq_item_h.WVALID = axi_if.WVALID;
+			axi_seq_item_h.WLAST = axi_if.WLAST;
+			
+			wch_mon_port.write (axi_seq_item_h); //Sending sent beat to Scheduler	
+			
 			i++;
 		end //}
 	end //}	 	

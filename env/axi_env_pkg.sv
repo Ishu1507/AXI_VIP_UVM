@@ -16,13 +16,11 @@ package axi_env_pkg;
 	`include "axi_memory.sv" 
     	`include "axi_env_config.sv"
 	`include "axi_id_scheduler.sv"
-   	
 	
 	`include "axi_mst_drv.sv"
 	`include "axi_mst_seqr.sv"
 	`include "axi_mst_mon.sv"
 	`include "axi_mst_agent.sv"
-
 	
 	`include "axi_slv_drv.sv"
 	`include "axi_slv_seqr.sv"

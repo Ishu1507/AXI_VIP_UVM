@@ -1,6 +1,9 @@
 `uvm_analysis_imp_decl (_arch_mon_imp)
 `uvm_analysis_imp_decl (_rch_mon_imp)
 
+`uvm_analysis_imp_decl (_awch_mon_imp)
+`uvm_analysis_imp_decl (_wch_mon_imp)
+
 typedef ar_ch_tr queue_id [$];
 class axi_id_scheduler extends uvm_component;
   `uvm_component_utils(axi_id_scheduler)
@@ -28,6 +31,9 @@ class axi_id_scheduler extends uvm_component;
   uvm_analysis_imp_arch_mon_imp #(axi_seq_item, axi_id_scheduler) arch_mon_imp;
   uvm_analysis_imp_rch_mon_imp #(axi_seq_item, axi_id_scheduler) rch_mon_imp;
   
+  uvm_analysis_imp_awch_mon_imp #(axi_seq_item, axi_id_scheduler) awch_mon_imp;
+  uvm_analysis_imp_wch_mon_imp #(axi_seq_item, axi_id_scheduler) wch_mon_imp;
+  
   function new (string name = "axi_id_scheduler", uvm_component parent = null);
     super.new (name, parent);
   
@@ -35,9 +41,13 @@ class axi_id_scheduler extends uvm_component;
                 
   function void build_phase (uvm_phase phase);
     super.build_phase(phase);
-    
+    //////////Read channel imp port creation///////////
     arch_mon_imp = new ("arch_mon_imp", this);
     rch_mon_imp = new ("rch_mon_imp", this);
+
+    ////////Write channle imp port creation////////////
+    awch_mon_imp = new ("awch_mon_imp", this);
+    wch_mon_imp = new ("wch_mon_imp", this);
     
     if (!uvm_config_db #(axi_env_config):: get (this, "", "axi_cfg", axi_env_config_h))
       `uvm_info (get_type_name(), $psprintf("Could not get AXI config object"), UVM_NONE);
@@ -220,9 +230,16 @@ class axi_id_scheduler extends uvm_component;
     end
          
   endtask
-                
-  
-  
+
+/////////// Functions for Write channel////////////////               
+ function write_awch_mon_imp (axi_seq_item aw_mst_txn);
+
+ endfunction
+ 
+function write_wch_mon_imp (axi_seq_item w_mst_txn);
+
+ endfunction
+
   
   
   

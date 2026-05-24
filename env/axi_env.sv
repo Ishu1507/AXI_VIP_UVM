@@ -30,8 +30,10 @@ class axi_env extends uvm_env;
     
     axi_mst_agent_h.axi_mst_drv_h.arch_mon_port.connect (axi_id_scheduler_h.arch_mon_imp);
     axi_slv_agent_h.axi_slv_mon_h.rch_mon_port.connect (axi_id_scheduler_h.rch_mon_imp);
-    
-    //axi_mst_agent_h.axi_mst_drv_h.arch_mon_port.connect (axi_scoreboard_h.axi_mst_ar_imp);
+ 
+    //////////////Master to Scheduler Port connections for Write AW and W channels///////////////////  
+    axi_mst_agent_h.axi_mst_drv_h.awch_mon_port.connect(axi_id_scheduler_h.awch_mon_imp); 
+    axi_mst_agent_h.axi_mst_drv_h.wch_mon_port.connect(axi_id_scheduler_h.wch_mon_imp); 
     
     axi_mst_agent_h.axi_mst_mon_h.arch_mon_port.connect (axi_scoreboard_h.axi_mst_ar_imp);
     axi_slv_agent_h.axi_slv_mon_h.rch_mon_port.connect (axi_scoreboard_h.axi_slv_r_imp);

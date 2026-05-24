@@ -6,7 +6,7 @@
   //AR channel signals
    logic [5:0]  ARADDR;
    logic        ARVALID;
-   logic 	    ARREADY;
+   logic 	ARREADY;
    logic [7:0]  ARLEN;
    logic [5:0] 	ARID;
   
