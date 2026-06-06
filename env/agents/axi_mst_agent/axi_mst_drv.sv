@@ -122,7 +122,7 @@ class axi_mst_drv extends uvm_driver #(axi_seq_item);
   endtask
 
   task drv_wch_data (); //Task to drive WDATA beats
-	axi_seq_item axi_seq_item_h;
+	axi_seq_item axi_seq_item_h, axi_seq_item_wdata_h;
 	
 	bit [ADDR_WIDTH-1:0] curr_addr;
 	bit [BURST_LEN_WIDTH-1:0] awlen;
@@ -147,6 +147,9 @@ class axi_mst_drv extends uvm_driver #(axi_seq_item);
 		 
 		while (i < awlen + 1)
 		begin //{
+		
+			axi_seq_item_wdata_h = axi_seq_item::type_id::create("axi_seq_item_wdata_h");
+
 			axi_if.WDATA	<= {axi_memory_h.mem[curr_addr + 3], axi_memory_h.mem[curr_addr + 2], axi_memory_h.mem[curr_addr + 1], axi_memory_h.mem[curr_addr]};
 			axi_if.WSTRB	<= strb;
 			axi_if.WVALID 	<= 1'b1;
@@ -164,18 +167,18 @@ class axi_mst_drv extends uvm_driver #(axi_seq_item);
 			axi_if.WLAST 	<= 1'b0;
 			curr_addr = curr_addr + 4;
 
-			axi_seq_item_h.WDATA = axi_if.WDATA;
-			axi_seq_item_h.WVALID = axi_if.WVALID;
-			axi_seq_item_h.WLAST = axi_if.WLAST;
+			axi_seq_item_wdata_h.WDATA = axi_if.WDATA;
+			axi_seq_item_wdata_h.WVALID = axi_if.WVALID;
+			axi_seq_item_wdata_h.WLAST = axi_if.WLAST;
 			
-			wch_mon_port.write (axi_seq_item_h); //Sending sent beat to Scheduler	
+			wch_mon_port.write (axi_seq_item_wdata_h); //Sending sent beat to Scheduler	
 			
 			i++;
 		end //}
 	end //}	 	
   endtask
  
-  task drv_rdy();
+  task drv_rrdy();
   	int rnd_val; 
   	if (axi_env_config_h.rrdy_rnd_en_val_m)
   	begin //{
@@ -201,6 +204,11 @@ class axi_mst_drv extends uvm_driver #(axi_seq_item);
   	end //}
 			 
   endtask
+
+  task drv_brdy();
+	@(posedge axi_if.axi_clk);	
+	axi_if.BREADY <= 1'b1;
+  endtask
   
   task run_phase (uvm_phase phase);
     //super.new (phase);
@@ -208,8 +216,12 @@ class axi_mst_drv extends uvm_driver #(axi_seq_item);
    
    fork
    begin
-     drv_rdy();
+   	drv_rrdy();
    end
+   begin
+	drv_brdy();
+   end
+
    begin
 	do
 		drv_wch_data();

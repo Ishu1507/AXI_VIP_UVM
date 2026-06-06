@@ -5,11 +5,20 @@
 `uvm_analysis_imp_decl (_wch_mon_imp)
 
 typedef ar_ch_tr queue_id [$];
+typedef logic [ID_WIDTH-1:0] write_id; 
 class axi_id_scheduler extends uvm_component;
   `uvm_component_utils(axi_id_scheduler)
   
   virtual axi_interface axi_if;
-  
+ 
+  //////////////For Write channels/////////////
+
+  //aw_ch_tr write_database [write_id][$]; //Data base for write channels
+  aw_ch_tr awtxn_q [$]; //Stores AW transaction requets  
+  axi_seq_item wdata_q [$]; //Stores WDATA beats
+  b_ch_tr bch_q [$]; 
+ 
+  //////////////For Read channels////////////// 
   ar_ch_tr ar_ch_tr_queue [$];
   
   ar_ch_tr latency_model_queue [$];
@@ -209,38 +218,116 @@ class axi_id_scheduler extends uvm_component;
   function void write_rch_mon_imp (axi_seq_item slv_txn);
     
   endfunction
-  
+
+  /////////// Functions for Write channel////////////////               
+ function write_awch_mon_imp (axi_seq_item aw_mst_txn); // Write function for AW requests
+	//if (aw_mst_txn.AWREADY && aw_mst_txn.AWVALID)
+	//begin //{	
+		aw_ch_tr aw_ch_tr_h = new (); // Object creation for a received AW request
+		
+		aw_ch_tr_h.awid = aw_mst_txn.AWID;
+		aw_ch_tr_h.awaddr = aw_mst_txn.AWADDR;
+		aw_ch_tr_h.awlen = aw_mst_txn.AWLEN;
+		aw_ch_tr_h.beat_count = 0; // Initializing beat count to 0 for raised AW request
+		aw_ch_tr_h.wlast = 0; // Initializing WLAST to 0 for raised AW request
+		
+		`uvm_info (get_type_name(), $psprintf("AWID = %0h pushed to scheduler database", aw_ch_tr_h.awid), UVM_HIGH)
+		//write_database[aw_ch_tr_h.awid].push_back(aw_ch_tr_h); // Raised AW request pushed to database handling writes.
+		awtxn_q.push_back (aw_ch_tr_h);
+	//end //}
+
+ endfunction
+ 
+ function write_wch_mon_imp (axi_seq_item w_mst_txn); // Write function for Wdata beats
+	//if (w_mst_txn.WREADY && w_mst_txn.WVALID)
+	//begin //{
+		wdata_q.push_back(w_mst_txn); // Queue collecting wdata beats in order
+		`uvm_info(get_type_name(), $psprintf("Beat data = %h WLAST = %h", w_mst_txn.WDATA, w_mst_txn.WLAST), UVM_HIGH)
+	//end //}
+ endfunction
+
+  //task get_bch_resp_txn (output axi_seq_item axi_seq_item_h);
+  task get_bch_resp_txn (output b_ch_tr b_ch_tr_h);
+	
+	b_ch_tr b_ch_tr_h;
+
+	while (!bch_q.size())
+		@(posedge axi_if.axi_clk);
+	
+	b_ch_tr_h = bch_q.pop_front();
+
+	//axi_seq_item_h.tr_type = WRITE;		
+	//axi_seq_item_h.BID = b_ch_tr_h.bid; 
+	//axi_seq_item_h.BRESP = b_ch_tr_h.bresp; 
+		
+
+  endtask
+
   task run_phase (uvm_phase phase);
     
     ar_ch_tr ar_ch_tr_h; 
     
-  	super.run_phase (phase);   
+    aw_ch_tr aw_ch_tr_h;
+
+    b_ch_tr b_ch_tr_h;
+ 
+    axi_seq_item axi_seq_item_h;
+    super.run_phase (phase);   
     
-    forever //Logic to feed AR requests to Latency model.
-    begin
-        
-      if (latency_model_queue.size() > 0)
-      begin
-         ar_ch_tr_h = latency_model_queue.pop_front();
-         latency_model (ar_ch_tr_h); //Sending currently receieved AR channel request to latency model
-         `uvm_info (get_type_name (), $psprintf("To latency model ARID= %0h, Delay = %0d", ar_ch_tr_h.arid, ar_ch_tr_h.delay), UVM_HIGH)
-      end
-      else
-        @(posedge axi_if.axi_clk); //Wait for next AR request to feed latency model
-    end
+    fork
+    begin //{ Thread for Read requests latency modelling
+    	forever //Logic to feed AR requests to Latency model.
+    	begin
+    	    
+    	  if (latency_model_queue.size() > 0)
+    	  begin
+    	     ar_ch_tr_h = latency_model_queue.pop_front();
+    	     latency_model (ar_ch_tr_h); //Sending currently receieved AR channel request to latency model
+    	     `uvm_info (get_type_name (), $psprintf("To latency model ARID= %0h, Delay = %0d", ar_ch_tr_h.arid, ar_ch_tr_h.delay), UVM_HIGH)
+    	  end
+    	  else
+    	    @(posedge axi_if.axi_clk); //Wait for next AR request to feed latency model
+    	end
+    end //}
+    ///////////////////////Write channel threads///////////////////
+    begin //{ Thread for AW and W channel monitoring and B channel response generation
+	
+	forever
+	begin //{
+		if (awtxn_q.size() > 0)
+		begin //{
+			aw_ch_tr_h = awtxn_q.pop_front ();
+			`uvm_info (get_type_name (), $psprintf("Popped ID: %0h beat_count = %0d, awlen = %0d", aw_ch_tr_h.awid, aw_ch_tr_h.beat_count, aw_ch_tr_h.awlen), UVM_HIGH)
+			do
+			begin //{
+				axi_seq_item_h = wdata_q.pop_front();
+				aw_ch_tr_h.beat_count = aw_ch_tr_h.beat_count + 1; //Incrementing beat count for AW transaction request raised
+				`uvm_info (get_type_name (), $psprintf("ID: %0h, Beat count = %0d,  Beat data = %0h, Beat last = %0h, awtxn_q.size() = %0d, wdata_q.size() = %0d", aw_ch_tr_h.awid, aw_ch_tr_h.beat_count, axi_seq_item_h.WDATA, axi_seq_item_h.WLAST, awtxn_q.size(), wdata_q.size()), UVM_HIGH)
+				@(posedge axi_if.axi_clk); 
+			end //}
+			while (!axi_seq_item_h.WLAST);
+			`uvm_info (get_type_name (), $psprintf(" OUT OF DO WHILE LAST ID: %0h beat_count = %0d, awlen = %0d, WDATA= %0h, WLAST = 0h", aw_ch_tr_h.awid, aw_ch_tr_h.beat_count, aw_ch_tr_h.awlen, axi_seq_item_h.WDATA, axi_seq_item_h.WLAST), UVM_HIGH)	
+			if (aw_ch_tr_h.beat_count == aw_ch_tr_h.awlen + 1)
+			begin //{
+				`uvm_info (get_type_name (), $psprintf("ID: %0h, Number of beats %d matches AWLEN + 1: %d", aw_ch_tr_h.awid, aw_ch_tr_h.beat_count, aw_ch_tr_h.awlen + 1), UVM_HIGH)
+				 b_ch_tr_h = new();
+
+				 b_ch_tr_h.bid = aw_ch_tr_h.awid; 
+				 b_ch_tr_h.bresp = 2'b00; 
+				 bch_q.push_back(b_ch_tr_h);
+			end //}				
+		end //}
+		else
+			@(posedge axi_if.axi_clk);
+
+	end //}
+    end //}
+    
+    join
          
   endtask
+endclass  
 
-/////////// Functions for Write channel////////////////               
- function write_awch_mon_imp (axi_seq_item aw_mst_txn);
 
- endfunction
- 
-function write_wch_mon_imp (axi_seq_item w_mst_txn);
 
- endfunction
 
-  
-  
-  
-endclass

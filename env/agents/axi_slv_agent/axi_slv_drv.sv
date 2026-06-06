@@ -184,7 +184,29 @@ class axi_slv_drv extends uvm_driver #(axi_seq_item);
     end
            
   endtask
-  
+  /////////////////////Write tasks/////////////////////////
+  task initiate_drive_b_ch ();
+ 	
+	b_ch_tr b_ch_tr_h;
+	forever
+	begin //{	
+		while (!axi_id_scheduler_h.bch_q.size())
+				@(posedge axi_if.axi_clk);
+		
+		axi_id_scheduler_h.get_bch_resp_txn (b_ch_tr_h);
+		
+		axi_if.BID	<= b_ch_tr_h.bid;
+		axi_if.BRESP 	<= b_ch_tr_h.bresp;
+		axi_if.BVALID 	<= 1'b1;
+
+		do
+		begin //{
+			@(posedge axi_if.axi_clk);
+		end //}
+		while (!axi_if.BREADY);
+	end //}
+  endtask
+ 
   task run_phase (uvm_phase phase);
     super.run_phase (phase);
    fork
@@ -207,6 +229,10 @@ class axi_slv_drv extends uvm_driver #(axi_seq_item);
    end
    
    begin
+   	initiate_drive_b_ch();
+   end
+ 
+   begin
     forever
    	begin
         
@@ -215,7 +241,9 @@ class axi_slv_drv extends uvm_driver #(axi_seq_item);
     	if (req_item.rst)
       		drv_rst();
     	else if (req_item.drv_txn)
+	begin //{
       		drv_txn();
+	end //}
       
      	seq_item_port.item_done();
     end

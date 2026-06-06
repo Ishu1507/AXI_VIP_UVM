@@ -69,5 +69,26 @@ class ar_ch_tr;
   
   rand bit [3:0] delay;
 endclass
+
+class aw_ch_tr;
+  logic [ADDR_WIDTH-1:0]   awaddr;
+  logic [BURST_LEN_WIDTH-1:0]   awlen;
+  logic [ID_WIDTH-1:0] 	awid;
+ 
+  logic [BURST_LEN_WIDTH-1] beat_count; 
+  logic wlast;
+ 
+  bit rdy_to_srv;
+  
+  rand bit [3:0] delay;
+endclass 
+
+class b_ch_tr;
+
+   logic [ID_WIDTH-1:0] bid;
+   logic [1:0] bresp;
+
+endclass
+
   
   
