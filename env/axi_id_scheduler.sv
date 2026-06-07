@@ -13,7 +13,7 @@ class axi_id_scheduler extends uvm_component;
  
   //////////////For Write channels/////////////
 
-  //aw_ch_tr write_database [write_id][$]; //Data base for write channels
+  b_ch_tr wr_rsp_database [write_id][$]; //Data base for write channels
   aw_ch_tr awtxn_q [$]; //Stores AW transaction requets  
   axi_seq_item wdata_q [$]; //Stores WDATA beats
   b_ch_tr bch_q [$]; 
@@ -32,6 +32,7 @@ class axi_id_scheduler extends uvm_component;
   bit [5:0] my_id;
   
   bit initialized, initial_id_rdy_to_srv;
+  bit wr_rsp_initialized, wr_rsp_initial_id_rdy_to_srv;
   
   axi_env_config axi_env_config_h;
   
@@ -83,6 +84,23 @@ class axi_id_scheduler extends uvm_component;
       end
     join_none
   endtask 
+
+  task automatic wr_rsp_latency (b_ch_tr b_ch_tr_h);
+    //bit [3:0] count;
+    
+    fork
+      begin
+        `uvm_info (get_type_name(), $psprintf("bresp latency delay = %d", b_ch_tr_h.delay), UVM_HIGH)
+      	repeat (b_ch_tr_h.delay)
+       		@(posedge axi_if.axi_clk); 
+
+       		`uvm_info (get_type_name (), $psprintf ("BID ready for response = %0h", b_ch_tr_h.bid), UVM_HIGH)
+       		b_ch_tr_h.brsp_rdy_to_srv = 1; //Used for in order serving of requests 
+       
+       		//ooo_resp_id.push_back (ar_ch_tr_h.arid);
+      end
+    join_none
+  endtask
   
   task search_database(output bit [5:0] selected_id);
     
@@ -246,15 +264,45 @@ class axi_id_scheduler extends uvm_component;
 	//end //}
  endfunction
 
-  //task get_bch_resp_txn (output axi_seq_item axi_seq_item_h);
   task get_bch_resp_txn (output b_ch_tr b_ch_tr_h);
 	
-	b_ch_tr b_ch_tr_h;
-
-	while (!bch_q.size())
-		@(posedge axi_if.axi_clk);
+       	write_id sel_id;
 	
-	b_ch_tr_h = bch_q.pop_front();
+	if (axi_env_config_h.wresp_ooo_val_m)
+	begin //{
+		`uvm_info (get_type_name(), $psprintf("OOO bresp enabled"), UVM_HIGH)
+		wait (wr_rsp_database.num())
+		if (!wr_rsp_initialized)
+		begin //{
+			wr_rsp_database.first(sel_id);
+			`uvm_info (get_type_name(), $psprintf("First bresp ID = %0h", sel_id), UVM_HIGH)
+			wr_rsp_initialized = 1;
+		end //}
+	
+		do
+		begin //{
+			if (!wr_rsp_database.next(sel_id))
+				wr_rsp_database.first(sel_id);
+
+			@(posedge axi_if.axi_clk);
+			`uvm_info (get_type_name(), $psprintf("Current bresp ID = %0h", sel_id), UVM_HIGH)
+		end //}
+		while (!wr_rsp_database[sel_id][0].brsp_rdy_to_srv);
+			
+	
+		`uvm_info (get_type_name(), $psprintf("B response ID selected to srv = %0h", sel_id), UVM_HIGH)	
+		b_ch_tr_h = wr_rsp_database[sel_id].pop_front(); //Provides ID with rdy to srv response
+		if (wr_rsp_database[sel_id].size() == 0)
+		begin //{
+			wr_rsp_database.delete(sel_id);
+			`uvm_info (get_type_name(), $psprintf ("Bresp ID = %0h deleted, Entries in database = %d", sel_id, wr_rsp_database.num()), UVM_HIGH)
+		end //}
+	end //}
+	else
+	begin
+		wait(bch_q.size() > 0);
+		b_ch_tr_h = bch_q.pop_front();
+	end
 
 	//axi_seq_item_h.tr_type = WRITE;		
 	//axi_seq_item_h.BID = b_ch_tr_h.bid; 
@@ -306,14 +354,17 @@ class axi_id_scheduler extends uvm_component;
 				@(posedge axi_if.axi_clk); 
 			end //}
 			while (!axi_seq_item_h.WLAST);
-			`uvm_info (get_type_name (), $psprintf(" OUT OF DO WHILE LAST ID: %0h beat_count = %0d, awlen = %0d, WDATA= %0h, WLAST = 0h", aw_ch_tr_h.awid, aw_ch_tr_h.beat_count, aw_ch_tr_h.awlen, axi_seq_item_h.WDATA, axi_seq_item_h.WLAST), UVM_HIGH)	
+			`uvm_info (get_type_name (), $psprintf("OUT OF DO WHILE LAST ID: %0h beat_count = %0d, awlen = %0d, WDATA= %0h, WLAST = 0h", aw_ch_tr_h.awid, aw_ch_tr_h.beat_count, aw_ch_tr_h.awlen, axi_seq_item_h.WDATA, axi_seq_item_h.WLAST), UVM_HIGH)	
 			if (aw_ch_tr_h.beat_count == aw_ch_tr_h.awlen + 1)
 			begin //{
 				`uvm_info (get_type_name (), $psprintf("ID: %0h, Number of beats %d matches AWLEN + 1: %d", aw_ch_tr_h.awid, aw_ch_tr_h.beat_count, aw_ch_tr_h.awlen + 1), UVM_HIGH)
 				 b_ch_tr_h = new();
 
 				 b_ch_tr_h.bid = aw_ch_tr_h.awid; 
-				 b_ch_tr_h.bresp = 2'b00; 
+				 b_ch_tr_h.bresp = 2'b00;
+				 b_ch_tr_h.randomize();
+				 wr_rsp_latency(b_ch_tr_h); //Rsp txn subjected to latency. Rsp is given out based on latency completion for OOO response.
+				 wr_rsp_database[b_ch_tr_h.bid].push_back(b_ch_tr_h); // Wr Response database needed for maintaining in order response for multiple outstanding transactions per ID.    
 				 bch_q.push_back(b_ch_tr_h);
 			end //}				
 		end //}

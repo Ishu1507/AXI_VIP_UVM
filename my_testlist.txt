@@ -32,3 +32,6 @@ axi_ar_txn_test +NUM_REQS=10 +INTRLV +RVLD_RND_EN +ARRDY_RND_EN
 
 ##basic In order response bringup test###############
 axi_aw_txn_test +NUM_REQS=10 +AWLEN=5
+
+##OOO response bringup test###############
+axi_aw_txn_test +NUM_REQS=15 +WRESP_OOO 

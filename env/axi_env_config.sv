@@ -10,6 +10,7 @@ class axi_env_config extends uvm_object;
   bit rvld_rnd_en_val_m; 
   bit arvld_rnd_en_val_m;
   bit rrdy_rnd_en_val_m;
+  bit wresp_ooo_val_m;
 
   bit [5:0] awlen_val, awlen_val_m; 
   
@@ -90,6 +91,15 @@ class axi_env_config extends uvm_object;
     	awlen_switch_cfg = 1;
     	`uvm_info(get_type_name(), $psprintf("Value of awlen_val_m= %d", awlen_val_m), UVM_NONE)
   end
+
+  if ($test$plusargs("WRESP_OOO"))
+  begin
+  	wresp_ooo_val_m = 1;
+  	`uvm_info(get_type_name(), $psprintf("B channel OOO response enabled "), UVM_NONE)
+  end
+  else
+  	wresp_ooo_val_m = 0;
+
 
 
 endfunction

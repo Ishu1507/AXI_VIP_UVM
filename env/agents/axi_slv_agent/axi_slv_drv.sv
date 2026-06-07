@@ -190,8 +190,8 @@ class axi_slv_drv extends uvm_driver #(axi_seq_item);
 	b_ch_tr b_ch_tr_h;
 	forever
 	begin //{	
-		while (!axi_id_scheduler_h.bch_q.size())
-				@(posedge axi_if.axi_clk);
+		//while (!axi_id_scheduler_h.bch_q.size())
+		//		@(posedge axi_if.axi_clk);
 		
 		axi_id_scheduler_h.get_bch_resp_txn (b_ch_tr_h);
 		
@@ -204,6 +204,9 @@ class axi_slv_drv extends uvm_driver #(axi_seq_item);
 			@(posedge axi_if.axi_clk);
 		end //}
 		while (!axi_if.BREADY);
+
+		axi_if.BVALID 	<= 1'b0;
+
 	end //}
   endtask
  

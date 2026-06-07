@@ -20,7 +20,8 @@ class axi_aw_txn_seq extends axi_base_seq;
 	axi_seq_item_aw_master_h = axi_seq_item::type_id::create("axi_seq_item_aw_master_h");
 
         axi_seq_item_aw_master_h.tr_type = WRITE;
-	`uvm_do_with (axi_seq_item_aw_master_h, {rst == 0; drv_txn == 1; AWVALID == 1; AWLEN == local::awlen; WSTRB == ({STRB_WIDTH{1'b1}});});
+	//`uvm_do_with (axi_seq_item_aw_master_h, {rst == 0; drv_txn == 1; AWVALID == 1; AWLEN == local::awlen; WSTRB == ({STRB_WIDTH{1'b1}});});
+	`uvm_do_with (axi_seq_item_aw_master_h, {rst == 0; drv_txn == 1; AWVALID == 1; WSTRB == ({STRB_WIDTH{1'b1}});});
 	
 	
     end //}     

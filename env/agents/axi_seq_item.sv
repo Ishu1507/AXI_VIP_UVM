@@ -67,7 +67,7 @@ class ar_ch_tr;
   bit [7:0] count;
   bit rdy_to_srv;
   
-  rand bit [3:0] delay;
+  rand bit [3:0] delay; //rand delay for modelling latency
 endclass
 
 class aw_ch_tr;
@@ -75,7 +75,7 @@ class aw_ch_tr;
   logic [BURST_LEN_WIDTH-1:0]   awlen;
   logic [ID_WIDTH-1:0] 	awid;
  
-  logic [BURST_LEN_WIDTH-1] beat_count; 
+  logic [BURST_LEN_WIDTH:0] beat_count; //Not burst_len-1 here, this is to enure the max AWLEN scenario where actual beat count will be AWLEN+1 and we need additional bit in MSB to support that
   logic wlast;
  
   bit rdy_to_srv;
@@ -87,6 +87,10 @@ class b_ch_tr;
 
    logic [ID_WIDTH-1:0] bid;
    logic [1:0] bresp;
+
+   bit brsp_rdy_to_srv;
+
+   rand bit [3:0] delay; //rand delay for modelling  response latency
 
 endclass
 
